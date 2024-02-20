@@ -1,0 +1,147 @@
+#===================================
+# Simulation parameters setup
+#===================================
+set val(stop) 10.0 ;# time of simulation end
+#===================================
+# Initialization
+#===================================
+#Create a ns simulator
+set ns [new Simulator]
+
+#Open the NS trace file
+set tracefile [open exp2.tr w]
+$ns trace-all $tracefile
+
+#Open the NAM trace file
+set namfile [open exp2.nam w]
+$ns namtrace-all $namfile
+
+#===================================
+# Nodes Definition
+#===================================
+
+#Create 6 nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+#===================================
+# Links Definition
+#===================================
+#Createlinks between nodes
+$ns duplex-link $n0 $n4 1005.0Mb 1ms DropTail
+$ns queue-limit $n0 $n4 5
+$ns duplex-link $n1 $n4 50.0Mb 1ms DropTail
+$ns queue-limit $n1 $n4 0
+$ns duplex-link $n2 $n4 2000.0Mb 1ms DropTail
+$ns queue-limit $n2 $n4 3
+$ns duplex-link $n3 $n4 200.0Mb 1ms DropTail
+$ns queue-limit $n3 $n4 0
+$ns duplex-link $n5 $n4 1.0Mb 1ms DropTail
+$ns queue-limit $n5 $n4 2
+
+#Give node position (for NAM)
+$ns duplex-link-op $n0 $n4 orient right-down
+$ns duplex-link-op $n1 $n4 orient left-down
+$ns duplex-link-op $n2 $n4 orient left-down
+$ns duplex-link-op $n3 $n4 orient left-up
+$ns duplex-link-op $n5 $n4 orient right-up
+
+#===================================
+# Agents Definition
+#===================================
+set p1 [new Agent/Ping]
+
+$ns attach-agent $n0 $p1
+$p1 set packetSize_ 50000
+$p1 set interval_ 0.0001
+set p2 [new Agent/Ping]
+$ns attach-agent $n1 $p2
+set p3 [new Agent/Ping]
+$ns attach-agent $n2 $p3
+$p3 set packetSize_ 30000
+$p3 set interval_ 0.00001
+set p4 [new Agent/Ping]
+$ns attach-agent $n3 $p4
+set p5 [new Agent/Ping]
+$ns attach-agent $n5 $p5
+Agent/Ping instproc recv {from rtt} {
+$self instvar node_
+puts "node [$node_ id] received answer from $from with round trip time
+$rtt msec"
+}
+$ns connect $p1 $p5
+$ns connect $p3 $p4
+proc finish { } {
+global ns namfile tracefile
+$ns flush-trace
+close $namfile
+close $tracefile
+exec nam m.nam &
+exit 0
+}
+$ns at 0.1 "$p1 send"
+$ns at 0.2 "$p1 send"
+$ns at 0.3 "$p1 send"
+$ns at 0.4 "$p1 send"
+$ns at 0.5 "$p1 send"
+$ns at 0.6 "$p1 send"
+
+$ns at 0.7 "$p1 send"
+$ns at 0.8 "$p1 send"
+$ns at 0.9 "$p1 send"
+$ns at 1.0 "$p1 send"
+
+$ns at 0.1 "$p3 send"
+$ns at 0.2 "$p3 send"
+$ns at 0.3 "$p3 send"
+$ns at 0.4 "$p3 send"
+$ns at 0.5 "$p3 send"
+$ns at 0.6 "$p3 send"
+$ns at 0.7 "$p3 send"
+$ns at 0.8 "$p3 send"
+$ns at 0.9 "$p3 send"
+$ns at 1.0 "$p3 send"
+$ns at 2.0 "finish"
+$ns run
+
+#===================================
+# Applications Definition
+#===================================
+
+#===================================
+# Termination
+#===================================
+#Define a 'finish' procedure
+proc finish {} {
+global ns tracefile namfile
+$ns flush-trace
+close $tracefile
+close $namfile
+exec nam exp2.nam &
+exit 0
+}
+
+$ns at $val(stop) "$ns nam-end-wireless $val(stop)"
+$ns at $val(stop) "finish"
+$ns at $val(stop) "puts \"done\" ; $ns halt"
+$ns run
+
+
+
+
+AWK file
+
+BEGIN{
+count=0;
+}
+{
+if($1=="d")
+count++ ;
+}
+END{
+printf("The Total no of Packets Drop is :%d\n\n", count);
+}
